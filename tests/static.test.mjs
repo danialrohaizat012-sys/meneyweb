@@ -1,0 +1,16 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const home=readFileSync('index.html','utf8');
+const admin=readFileSync('catalogue-admin.html','utf8');
+const rules=readFileSync('firestore-public-catalogue.rules.snippet','utf8');
+test('Public catalogue reads only published records',()=>assert.match(home,/where\("published","==",true\)/));
+test('Public website never reads internal products',()=>assert.doesNotMatch(home,/collection\(db,\s*["']products["']/));
+test('Publisher validates owner role',()=>assert.match(admin,/p\.data\(\)\.role\s*!==\s*"owner"/));
+test('Publisher writes separate public collection',()=>assert.match(admin,/setDoc\(doc\(db,"publicCatalogue",selected\),data\)/));
+test('Publisher has unpublish action',()=>assert.match(admin,/published:false/));
+test('Rules only allow owner writes',()=>assert.match(rules,/allow create, update: if isOwner\(\)/));
+test('Rules require published for anonymous reads',()=>assert.match(rules,/resource\.data\.published == true/));
+test('Rules allowlist public fields',()=>assert.match(rules,/keys\(\)\.hasOnly/));
+test('WhatsApp uses official number',()=>{assert.match(home,/601175956474/);assert.doesNotMatch(home,/60199400004/)});
+test('Website escapes product content',()=>assert.match(home,/function esc\(/));
