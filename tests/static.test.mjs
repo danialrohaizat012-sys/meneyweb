@@ -14,3 +14,7 @@ test('Rules require published for anonymous reads',()=>assert.match(rules,/resou
 test('Rules allowlist public fields',()=>assert.match(rules,/keys\(\)\.hasOnly/));
 test('WhatsApp uses official number',()=>{assert.match(home,/601175956474/);assert.doesNotMatch(home,/60199400004/)});
 test('Website escapes product content',()=>assert.match(home,/function esc\(/));
+
+test('Owner reconciliation updates only public price and availability',()=>{assert.match(admin,/async function syncPublished\(/);assert.match(admin,/updateDoc\(doc\(db,"publicCatalogue",x\.id\),\{price,available,updatedAt:serverTimestamp\(\)\}\)/);assert.doesNotMatch(admin,/updateDoc\(doc\(db,"products"/)});
+test('Reconciliation requires explicit confirmation',()=>assert.match(admin,/if\(!confirm\("Sync "/));
+test('Publisher paginates inventory',()=>{assert.match(admin,/PAGE_SIZE=50/);assert.match(admin,/nextPage/);assert.match(admin,/prevPage/)});
