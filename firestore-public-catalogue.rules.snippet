@@ -1,43 +1,26 @@
-// ADDITIVE PATCH ONLY. Insert INSIDE:
-// service cloud.firestore { match /databases/{database}/documents { ... } }
-// Keep every existing match and function unchanged.
-//
-// Public read is limited to explicitly published catalogue documents.
-// Public users can NEVER write to this collection.
-// Owner controls publishing. Existing staff POS products are NOT public.
-//
-// IMPORTANT: This is a collection-level read permission. Published documents
-// MUST contain only public fields; do not copy whole /products documents.
-// Suggested allowlisted fields:
-// name, category, brand, condition, price, imageUrl, available,
-// published, updatedAt, sourceProductId
+// Add inside existing /databases/{database}/documents block.
+// Do not replace existing Firestore rules.
+// Published records contain ONLY public fields; NEVER copy whole POS products.
+// Owner can read unpublished drafts. Anonymous users can query only published records.
 match /publicCatalogue/{productId} {
-  allow get, list: if resource.data.published == true;
-  allow create: if isOwner()
-    && request.resource.data.published is bool
+  allow get, list: if isOwner() || resource.data.published == true;
+  allow create, update: if isOwner()
     && request.resource.data.keys().hasOnly([
       "name", "category", "brand", "condition", "price",
       "imageUrl", "available", "published", "updatedAt",
       "sourceProductId"
     ])
-    && request.resource.data.name is string
-    && request.resource.data.name.size() > 0
-    && request.resource.data.price is number
-    && request.resource.data.price >= 0;
-  allow update: if isOwner()
-    && request.resource.data.keys().hasOnly([
-      "name", "category", "brand", "condition", "price",
-      "imageUrl", "available", "published", "updatedAt",
-      "sourceProductId"
+    && request.resource.data.keys().hasAll([
+      "name", "price", "published", "sourceProductId"
     ])
-    && request.resource.data.published is bool
     && request.resource.data.name is string
     && request.resource.data.name.size() > 0
     && request.resource.data.price is number
-    && request.resource.data.price >= 0;
+    && request.resource.data.price >= 0
+    && request.resource.data.published is bool
+    && request.resource.data.sourceProductId == productId;
   allow delete: if isOwner();
 }
-
-// NOTE: Firestore queries MUST include where("published","==",true).
-// Do not add public read to /products, /inventoryUnits or /customers.
-// Test with Emulator before deploying rules to production.
+// The public storefront query must include where("published","==",true).
+// Test using Firestore Emulator before deploying to production.
+// Existing /products, /customers, /inventoryUnits rules stay unchanged.
